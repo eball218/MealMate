@@ -27,7 +27,7 @@ export default function ReceiptScanner({ shoppingList, onUpdateList }: Props) {
   };
 
   return (
-    <div className="h-full bg-white rounded-3xl shadow-sm border border-stone-100 flex flex-col p-6">
+    <div className="h-full bg-white rounded-3xl shadow-sm border border-stone-100 flex flex-col p-6 max-w-6xl mx-auto w-full">
       {/* Header */}
       <div className="mb-6 flex justify-between items-start">
          <div>
@@ -47,7 +47,7 @@ export default function ReceiptScanner({ shoppingList, onUpdateList }: Props) {
             <p className="text-xs mt-1">Add ingredients from your Meal Plan.</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {shoppingList.map((item) => (
               <div 
                 key={item.id} 
@@ -57,10 +57,10 @@ export default function ReceiptScanner({ shoppingList, onUpdateList }: Props) {
                      : 'bg-white border-stone-100 hover:border-lime-200 shadow-sm'
                 }`}
               >
-                <div className="flex items-center gap-4 flex-1">
+                <div className="flex items-center gap-4 flex-1 overflow-hidden">
                    <button 
                      onClick={() => toggleCheck(item.id)}
-                     className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                     className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${
                         item.checked 
                           ? 'bg-lime-400 border-lime-400 text-stone-900' 
                           : 'border-stone-300 hover:border-lime-400'
@@ -73,8 +73,8 @@ export default function ReceiptScanner({ shoppingList, onUpdateList }: Props) {
                       )}
                    </button>
                    
-                   <div className="flex flex-col flex-1">
-                      <span className={`font-bold text-stone-800 ${item.checked ? 'line-through text-stone-400' : ''}`}>
+                   <div className="flex flex-col flex-1 overflow-hidden">
+                      <span className={`font-bold text-stone-800 truncate ${item.checked ? 'line-through text-stone-400' : ''}`}>
                           {item.name}
                       </span>
                       <div className="flex gap-2 text-xs">
@@ -89,8 +89,9 @@ export default function ReceiptScanner({ shoppingList, onUpdateList }: Props) {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => handleWalmartSearch(item)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-stone-500 bg-stone-100 hover:bg-lime-300 hover:text-stone-900 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-[#0071dc] bg-blue-50 hover:bg-blue-100 border border-blue-100 transition-colors"
                     >
+                        <span className="w-4 h-4 text-[#ffc220]"><Icons.Walmart /></span>
                         Find
                     </button>
                     <button 

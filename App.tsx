@@ -142,12 +142,17 @@ export default function App() {
       
       {/* Navigation */}
       {view !== ViewState.LIVE_COOKING && (
-         <Navigation currentView={view} setView={setView} />
+         <Navigation 
+            currentView={view} 
+            setView={setView} 
+            preferences={preferences}
+         />
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 h-full overflow-hidden relative">
-        <div className="h-full w-full max-w-md mx-auto md:max-w-5xl md:rounded-3xl overflow-hidden shadow-sm bg-stone-50">
+      <main className="flex-1 h-full overflow-hidden relative bg-stone-50">
+        {/* Removed max-w constraints to allow full fluid width on desktop */}
+        <div className="h-full w-full overflow-hidden shadow-sm">
           
           {/* Daily / Home View */}
           {view === ViewState.DAILY && preferences && (
@@ -203,7 +208,7 @@ export default function App() {
              />
           )}
 
-          {/* Saved View (Image Generator / Visualizer) - Hidden from main nav but accessible */}
+          {/* Saved View (Image Generator / Visualizer) */}
           {view === ViewState.SAVED && (
              <div className="h-full flex flex-col">
                 <div className="p-4 bg-white border-b border-stone-100 flex items-center gap-2">

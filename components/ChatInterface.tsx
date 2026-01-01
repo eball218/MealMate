@@ -71,7 +71,7 @@ export default function ChatInterface({ preferences, onRegeneratePlan }: Props) 
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-3xl shadow-sm border border-stone-100 overflow-hidden">
+    <div className="flex flex-col h-full bg-white rounded-3xl shadow-sm border border-stone-100 overflow-hidden w-full max-w-5xl mx-auto">
       {/* Header */}
       <div className="p-4 border-b border-stone-100 bg-stone-50/50 flex items-center gap-3">
         <div className="p-2 bg-lime-100 text-lime-600 rounded-full">
