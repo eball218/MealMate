@@ -1,3 +1,4 @@
+
 export type Role = 'user' | 'model';
 
 export interface ChatMessage {
@@ -28,7 +29,6 @@ export enum ViewState {
   ASSISTANT = 'ASSISTANT',
   LIST = 'LIST',
   PROFILE = 'PROFILE',
-  SAVED = 'SAVED', // Keeping for backward compatibility or direct access if needed
   LIVE_COOKING = 'LIVE_COOKING' // Sub-view
 }
 
@@ -43,11 +43,6 @@ export interface ShoppingItem extends ReceiptItem {
   checked: boolean;
   addedFrom?: string; // 'scan' or 'meal-plan'
   searchTerm?: string; // Optimized search query for retailers
-}
-
-export interface GeneratedImageResponse {
-  url: string;
-  prompt: string;
 }
 
 export interface Ingredient {

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { ViewState, UserPreferences, Meal, ShoppingItem } from './types';
 import Onboarding from './components/Onboarding';
 import ChatInterface from './components/ChatInterface';
-import ImageGenerator from './components/ImageGenerator';
 import LiveCookingAssistant from './components/LiveCookingAssistant';
 import ReceiptScanner from './components/ReceiptScanner';
 import Navigation from './components/Navigation';
@@ -123,6 +122,16 @@ export default function App() {
     localStorage.setItem('nourish_plan', JSON.stringify(newPlan));
   };
 
+  const handleResetApp = () => {
+    localStorage.removeItem('nourish_prefs');
+    localStorage.removeItem('nourish_plan');
+    localStorage.removeItem('nourish_list');
+    setPreferences(null);
+    setMealPlan([]);
+    setShoppingList([]);
+    setView(ViewState.LANDING);
+  };
+
   if (view === ViewState.LANDING) {
     return <LandingPage onStart={() => {
         if (preferences) {
@@ -204,23 +213,8 @@ export default function App() {
                onUpdatePreferences={handleUpdatePreferences}
                mealPlan={mealPlan}
                onToggleLike={toggleMealLike}
-               onOpenVisualizer={() => setView(ViewState.SAVED)}
+               onResetApp={handleResetApp}
              />
-          )}
-
-          {/* Saved View (Image Generator / Visualizer) */}
-          {view === ViewState.SAVED && (
-             <div className="h-full flex flex-col">
-                <div className="p-4 bg-white border-b border-stone-100 flex items-center gap-2">
-                   <button onClick={() => setView(ViewState.PROFILE)} className="text-stone-500 hover:text-stone-900">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-                      </svg>
-                   </button>
-                   <span className="font-bold text-stone-900">Back to Profile</span>
-                </div>
-                <ImageGenerator />
-             </div>
           )}
 
           {/* Live Cooking Mode (Overlay/Full screen) */}

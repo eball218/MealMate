@@ -7,12 +7,14 @@ interface Props {
   onUpdatePreferences: (prefs: UserPreferences) => void;
   mealPlan: Meal[];
   onToggleLike: (index: number, type: 'like' | 'dislike') => void;
-  onOpenVisualizer: () => void;
+  onResetApp: () => void;
 }
 
-export default function ProfileView({ preferences, onUpdatePreferences, mealPlan, onToggleLike, onOpenVisualizer }: Props) {
+export default function ProfileView({ preferences, onUpdatePreferences, mealPlan, onToggleLike, onResetApp }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [tempPrefs, setTempPrefs] = useState<UserPreferences>(preferences);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetInput, setResetInput] = useState('');
 
   const handleSave = () => {
     onUpdatePreferences(tempPrefs);
@@ -24,11 +26,17 @@ export default function ProfileView({ preferences, onUpdatePreferences, mealPlan
     setIsEditing(false);
   };
 
+  const handleResetConfirm = () => {
+    if (resetInput === 'DELETE') {
+      onResetApp();
+    }
+  };
+
   const hasLikedMeals = mealPlan.some(m => m.liked);
   const hasDislikedMeals = mealPlan.some(m => m.disliked);
 
   return (
-    <div className="h-full bg-stone-50 flex flex-col font-sans overflow-hidden">
+    <div className="h-full bg-stone-50 flex flex-col font-sans overflow-hidden relative">
       {/* Header */}
       <div className="p-6 pb-2 flex-shrink-0 bg-stone-50">
         <div className="max-w-7xl mx-auto w-full flex justify-between items-center mb-6">
@@ -307,25 +315,66 @@ export default function ProfileView({ preferences, onUpdatePreferences, mealPlan
              )}
           </div>
 
-          {/* Tools Section - Updated */}
-          <div className="md:col-span-2 lg:col-span-3 bg-white rounded-[24px] p-6 shadow-sm border border-stone-100 mt-4">
-               <h3 className="text-sm font-bold text-stone-900 mb-3 flex items-center gap-2">
-                   <span className="text-purple-500"><Icons.Sparkle /></span> Creative Studio
-               </h3>
-               <p className="text-stone-500 text-sm mb-5 leading-relaxed">
-                  Want to see what a recipe looks like before you cook? Use our AI Visualizer to generate photorealistic images of your meal ideas. Perfect for getting inspired!
-               </p>
-               <button 
-                  onClick={onOpenVisualizer}
-                  className="w-full py-4 bg-stone-900 text-white rounded-2xl font-bold hover:bg-stone-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-stone-200"
-               >
-                  <Icons.Image />
-                  Open Meal Visualizer
-               </button>
-          </div>
         </div>
+
+        {/* Danger Zone */}
+        <div className="max-w-7xl mx-auto w-full mt-10 border-t border-stone-200 pt-8">
+            <h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-4">Account Actions</h3>
+            <button 
+                onClick={() => setShowResetModal(true)}
+                className="flex items-center gap-2 text-red-600 hover:text-red-700 font-bold text-sm bg-red-50 hover:bg-red-100 px-6 py-4 rounded-xl transition-colors border border-red-100 w-full md:w-auto justify-center"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                    <path fillRule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 013.878.512.75.75 0 11-.49 1.478l-.565-17.522a2.25 2.25 0 01-2.25 2.25H9.418a2.25 2.25 0 01-2.25-2.25l-.566-17.523a.75.75 0 01-.489-1.478A48.567 48.567 0 017.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 013.369 0c1.603.051 2.815 1.387 2.815 2.951zm-6.136-1.452a51.196 51.196 0 013.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 00-6 0v-.113c0-.794.609-1.428 1.364-1.452zm-.355 5.945a.75.75 0 10-1.5.058l.347 9a.75.75 0 101.499-.058l-.346-9zm5.48.058a.75.75 0 10-1.498-.058l-.347 9a.75.75 0 001.5.058l.345-9z" clipRule="evenodd" />
+                </svg>
+                Reset & Delete Profile
+            </button>
+        </div>
+
         <div className="h-20"></div>
       </div>
+
+      {/* Confirmation Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm">
+            <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-[fadeInUp_0.2s_ease-out]">
+            <div className="w-14 h-14 rounded-full bg-red-100 text-red-500 flex items-center justify-center mb-5 mx-auto border-4 border-red-50">
+                <Icons.Alert />
+            </div>
+            <h3 className="text-2xl font-display font-black text-center text-stone-900 mb-2">Reset Account?</h3>
+            <p className="text-center text-stone-500 text-sm mb-6 leading-relaxed">
+                This will permanently delete your profile, all meal plans, and shopping lists. <br/><span className="font-bold text-red-500">This action cannot be undone.</span>
+            </p>
+            
+            <div className="space-y-4">
+                <div>
+                <label className="text-xs font-bold text-stone-400 uppercase block mb-2 text-center">Type "DELETE" to confirm</label>
+                <input 
+                    type="text" 
+                    value={resetInput}
+                    onChange={(e) => setResetInput(e.target.value)}
+                    className="w-full p-4 bg-stone-50 border-2 border-stone-200 rounded-xl text-center font-black text-stone-900 focus:border-red-400 focus:ring-0 focus:outline-none uppercase tracking-widest text-lg"
+                    placeholder="DELETE"
+                />
+                </div>
+                
+                <button 
+                onClick={handleResetConfirm}
+                disabled={resetInput !== 'DELETE'}
+                className="w-full py-4 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-red-200"
+                >
+                Yes, Reset Everything
+                </button>
+                <button 
+                onClick={() => { setShowResetModal(false); setResetInput(''); }}
+                className="w-full py-4 rounded-xl bg-white text-stone-500 font-bold border-2 border-stone-100 hover:bg-stone-50 transition-colors"
+                >
+                Cancel
+                </button>
+            </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 }
