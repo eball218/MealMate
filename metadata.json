@@ -1,0 +1,7 @@
+{
+  "name": "Nourish - Family Meal AI",
+  "description": "A family-focused, AI-powered meal prep companion that plans meals, learns from receipts, and offers real-time cooking guidance.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
