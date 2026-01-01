@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserPreferences, Meal } from '../types';
+import { UserPreferences, Meal, Ingredient } from '../types';
 import { Icons } from '../constants';
 
 interface Props {
@@ -8,9 +8,10 @@ interface Props {
   onStartCooking: () => void;
   onRegenerate: () => void;
   loading: boolean;
+  onToggleLike: (index: number, type: 'like' | 'dislike') => void;
 }
 
-export default function DailyView({ preferences, mealPlan, onStartCooking, onRegenerate, loading }: Props) {
+export default function DailyView({ preferences, mealPlan, onStartCooking, onRegenerate, loading, onToggleLike }: Props) {
   const [selectedDay, setSelectedDay] = useState(0); // 0 is today
 
   // Simple date logic
@@ -24,7 +25,14 @@ export default function DailyView({ preferences, mealPlan, onStartCooking, onReg
     };
   });
 
-  const meal = mealPlan[selectedDay % mealPlan.length];
+  const mealIndex = selectedDay % mealPlan.length;
+  const meal = mealPlan[mealIndex];
+
+  // Helper to format ingredient display
+  const formatIngredient = (ing: string | Ingredient) => {
+    if (typeof ing === 'string') return ing;
+    return `${ing.amount} ${ing.name}`;
+  };
 
   return (
     <div className="h-full bg-stone-50 overflow-y-auto pb-24 md:pb-6 font-sans scroll-smooth">
@@ -99,10 +107,20 @@ export default function DailyView({ preferences, mealPlan, onStartCooking, onReg
                   <Icons.Clock /> {meal.time || '30m'}
                 </div>
                 <div className="flex gap-2">
-                  <button className="w-10 h-10 rounded-full bg-stone-900/40 backdrop-blur-md flex items-center justify-center text-white hover:bg-stone-900/60 transition-colors border border-white/10">
+                  <button 
+                    onClick={() => onToggleLike(mealIndex, 'dislike')}
+                    className={`w-10 h-10 rounded-full backdrop-blur-md flex items-center justify-center transition-colors border border-white/10 ${
+                       meal.disliked ? 'bg-stone-800 text-white' : 'bg-stone-900/40 text-white hover:bg-stone-900/60'
+                    }`}
+                  >
                     <Icons.ThumbsDown />
                   </button>
-                  <button className="w-10 h-10 rounded-full bg-stone-900/40 backdrop-blur-md flex items-center justify-center text-lime-400 hover:bg-stone-900/60 transition-colors border border-white/10">
+                  <button 
+                    onClick={() => onToggleLike(mealIndex, 'like')}
+                    className={`w-10 h-10 rounded-full backdrop-blur-md flex items-center justify-center transition-colors border border-white/10 ${
+                        meal.liked ? 'bg-red-500 text-white shadow-red-500/30 shadow-lg' : 'bg-stone-900/40 text-lime-400 hover:bg-stone-900/60'
+                    }`}
+                  >
                     <Icons.Heart />
                   </button>
                 </div>
@@ -170,7 +188,7 @@ export default function DailyView({ preferences, mealPlan, onStartCooking, onReg
                  {meal.ingredients?.map((ing, i) => (
                    <div key={i} className="flex items-start gap-3 p-3 bg-stone-50 rounded-xl border border-stone-100">
                       <div className="mt-1.5 w-2 h-2 rounded-full bg-lime-400 flex-shrink-0" />
-                      <span className="text-stone-700 font-medium text-sm leading-relaxed">{ing}</span>
+                      <span className="text-stone-700 font-medium text-sm leading-relaxed">{formatIngredient(ing)}</span>
                    </div>
                  ))}
                </div>

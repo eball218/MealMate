@@ -92,7 +92,13 @@ export class LiveClient {
             const pcmBlob = createBlob(inputData);
             
             this.sessionPromise?.then(session => {
-              session.sendRealtimeInput({ media: pcmBlob });
+              if (this.isActive) {
+                try {
+                  session.sendRealtimeInput({ media: pcmBlob });
+                } catch (err) {
+                  console.warn("Failed to send audio input", err);
+                }
+              }
             });
           };
 
@@ -100,6 +106,8 @@ export class LiveClient {
           scriptProcessor.connect(this.inputAudioContext.destination);
         },
         onmessage: async (message: LiveServerMessage) => {
+           if (!this.isActive) return;
+
            // Handle Transcriptions
            if (message.serverContent?.outputTranscription) {
               this.onTranscriptionUpdate(message.serverContent.outputTranscription.text, false);
@@ -112,29 +120,38 @@ export class LiveClient {
           if (base64Audio && this.outputAudioContext) {
              this.nextStartTime = Math.max(this.nextStartTime, this.outputAudioContext.currentTime);
              
-             const audioBuffer = await decodeAudioData(
-               decode(base64Audio),
-               this.outputAudioContext,
-               24000,
-               1
-             );
+             try {
+                const audioBuffer = await decodeAudioData(
+                  decode(base64Audio),
+                  this.outputAudioContext,
+                  24000,
+                  1
+                );
 
-             const source = this.outputAudioContext.createBufferSource();
-             source.buffer = audioBuffer;
-             source.connect(this.outputAudioContext.destination);
-             source.addEventListener('ended', () => {
-               this.sources.delete(source);
-             });
-             source.start(this.nextStartTime);
-             this.nextStartTime += audioBuffer.duration;
-             this.sources.add(source);
+                const source = this.outputAudioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(this.outputAudioContext.destination);
+                source.addEventListener('ended', () => {
+                  this.sources.delete(source);
+                });
+                source.start(this.nextStartTime);
+                this.nextStartTime += audioBuffer.duration;
+                this.sources.add(source);
+             } catch (e) {
+                console.error("Audio decode error", e);
+             }
           }
         },
         onclose: () => {
           console.log("Live Session Closed");
         },
         onerror: (e) => {
-          console.error("Live Session Error", e);
+          // Filter out "Deadline expired" logs if they are just noise during disconnect
+          if (JSON.stringify(e).includes("Deadline expired")) {
+             console.warn("Live Session Timeout (Deadline expired)");
+          } else {
+             console.error("Live Session Error", e);
+          }
         }
       },
       config: {
@@ -151,10 +168,34 @@ export class LiveClient {
 
   disconnect() {
     this.isActive = false;
-    this.sources.forEach(s => s.stop());
+    
+    // Stop audio sources
+    this.sources.forEach(s => {
+      try { s.stop(); } catch (e) {}
+    });
     this.sources.clear();
-    this.inputAudioContext?.close();
-    this.outputAudioContext?.close();
-    // Cannot explicitly close session with current SDK, but breaking the audio stream effectively ends the loop
+    
+    // Close Audio Contexts Safely
+    if (this.inputAudioContext && this.inputAudioContext.state !== 'closed') {
+      try { this.inputAudioContext.close(); } catch(e) { console.warn("Input AC close error", e); }
+    }
+    if (this.outputAudioContext && this.outputAudioContext.state !== 'closed') {
+      try { this.outputAudioContext.close(); } catch(e) { console.warn("Output AC close error", e); }
+    }
+    
+    this.inputAudioContext = null;
+    this.outputAudioContext = null;
+
+    // Close session to prevent "Deadline expired" errors
+    if (this.sessionPromise) {
+        this.sessionPromise.then(session => {
+            try {
+                session.close();
+            } catch (e) {
+                console.log("Session cleanup error", e);
+            }
+        }).catch(() => {});
+        this.sessionPromise = null;
+    }
   }
 }

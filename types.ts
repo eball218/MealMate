@@ -15,6 +15,7 @@ export interface UserPreferences {
   familySize: number;
   dietaryRestrictions: string[]; // e.g., 'Gluten Free', 'Vegetarian'
   allergies: string[];
+  dislikes: string[]; // New field for ingredients to avoid
   cookingTime: string; // 'Fast (15-30m)', 'Medium (30-60m)', 'Slow (>60m)'
   goals: string; // 'Save Money', 'Eat Healthier', 'Try New Foods'
 }
@@ -26,7 +27,8 @@ export enum ViewState {
   PLAN = 'PLAN', 
   ASSISTANT = 'ASSISTANT',
   LIST = 'LIST',
-  SAVED = 'SAVED',
+  PROFILE = 'PROFILE',
+  SAVED = 'SAVED', // Keeping for backward compatibility or direct access if needed
   LIVE_COOKING = 'LIVE_COOKING' // Sub-view
 }
 
@@ -40,11 +42,17 @@ export interface ShoppingItem extends ReceiptItem {
   id: string;
   checked: boolean;
   addedFrom?: string; // 'scan' or 'meal-plan'
+  searchTerm?: string; // Optimized search query for retailers
 }
 
 export interface GeneratedImageResponse {
   url: string;
   prompt: string;
+}
+
+export interface Ingredient {
+  name: string;
+  amount: string;
 }
 
 export interface Meal {
@@ -57,7 +65,7 @@ export interface Meal {
   difficulty: string; // "Easy", "Medium", "Hard"
   rating: number;
   time: string; // e.g. "30 min"
-  ingredients: string[]; // Full list with quantities
+  ingredients: (Ingredient | string)[]; // structured object or string for backward compatibility
   prepSteps?: string[]; // Pre-cooking preparation
   cookingSteps?: string[]; // Actual cooking instructions
   recipeUrl: string; // Link to original or search

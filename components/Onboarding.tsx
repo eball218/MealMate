@@ -22,6 +22,7 @@ export default function Onboarding({ onComplete }: Props) {
     familySize: 3,
     dietaryRestrictions: [],
     allergies: [],
+    dislikes: [],
     cookingTime: 'Medium (30-60m)',
     goals: 'Eat Healthier'
   });

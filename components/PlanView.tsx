@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { UserPreferences, Meal, ShoppingItem } from '../types';
+import { UserPreferences, Meal, ShoppingItem, Ingredient } from '../types';
 import { Icons } from '../constants';
 
 interface Props {
@@ -8,9 +8,10 @@ interface Props {
   onRegenerate: () => void;
   loading: boolean;
   onAddToShoppingList: (item: ShoppingItem) => void;
+  onToggleLike: (index: number, type: 'like' | 'dislike') => void;
 }
 
-export default function PlanView({ preferences, mealPlan, onRegenerate, loading, onAddToShoppingList }: Props) {
+export default function PlanView({ preferences, mealPlan, onRegenerate, loading, onAddToShoppingList, onToggleLike }: Props) {
   const [selectedDateIndex, setSelectedDateIndex] = useState(0);
   const [addedIngredients, setAddedIngredients] = useState<Set<string>>(new Set());
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -36,16 +37,41 @@ export default function PlanView({ preferences, mealPlan, onRegenerate, loading,
     }
   }, [selectedDateIndex]);
 
-  const handleAddIngredient = (ingredient: string, mealTitle: string) => {
-    const id = `${mealTitle}-${ingredient}`;
+  const handleAddIngredient = (ingredient: string | Ingredient, mealTitle: string) => {
+    let name = '';
+    let searchTerm = '';
+    let idBase = '';
+
+    if (typeof ingredient === 'string') {
+        name = ingredient;
+        searchTerm = ingredient;
+        idBase = ingredient;
+    } else {
+        name = `${ingredient.name} - ${ingredient.amount}`;
+        searchTerm = ingredient.name;
+        idBase = ingredient.name;
+    }
+
+    const id = `${mealTitle}-${idBase}`;
     onAddToShoppingList({
-      id: Date.now().toString(),
-      name: ingredient,
+      id: Date.now().toString() + Math.random().toString(), // Ensure unique ID
+      name: name,
       category: 'Meal Plan',
       checked: false,
-      addedFrom: 'meal-plan'
+      addedFrom: 'meal-plan',
+      searchTerm: searchTerm
     });
     setAddedIngredients(prev => new Set(prev).add(id));
+  };
+
+  const getIngredientDisplay = (ing: string | Ingredient) => {
+    if (typeof ing === 'string') return ing;
+    return (
+        <span className="flex justify-between w-full">
+            <span>{ing.name}</span>
+            <span className="text-stone-400 font-normal">{ing.amount}</span>
+        </span>
+    );
   };
 
   return (
@@ -160,11 +186,13 @@ export default function PlanView({ preferences, mealPlan, onRegenerate, loading,
                                 </h3>
                                 <div className="flex gap-2">
                                    <button 
+                                     onClick={(e) => { e.stopPropagation(); onToggleLike(idx, 'like'); }}
                                      className={`p-2 rounded-full transition-colors ${meal.liked ? 'text-red-500 bg-red-50' : 'text-stone-300 hover:text-red-400 hover:bg-stone-50'}`}
                                    >
                                       <Icons.Heart />
                                    </button>
                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); onToggleLike(idx, 'dislike'); }}
                                       className={`p-2 rounded-full transition-colors ${meal.disliked ? 'text-stone-800 bg-stone-200' : 'text-stone-300 hover:text-stone-600 hover:bg-stone-50'}`}
                                    >
                                       <Icons.ThumbsDown />
@@ -213,15 +241,18 @@ export default function PlanView({ preferences, mealPlan, onRegenerate, loading,
                                 <h4 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-3">Full Ingredients List</h4>
                                 <div className="space-y-2">
                                     {meal.ingredients?.map((ing, i) => {
-                                        const id = `${meal.title}-${ing}`;
+                                        const ingName = typeof ing === 'string' ? ing : ing.name;
+                                        const id = `${meal.title}-${ingName}`;
                                         const isAdded = addedIngredients.has(id);
                                         return (
                                             <div key={i} className="flex items-center justify-between bg-white border border-stone-200 p-3 rounded-xl shadow-sm">
-                                                <span className="text-sm font-medium text-stone-700">{ing}</span>
+                                                <div className="text-sm font-medium text-stone-700 w-full pr-2">
+                                                    {getIngredientDisplay(ing)}
+                                                </div>
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); handleAddIngredient(ing, meal.title); }}
                                                     disabled={isAdded}
-                                                    className={`p-2 rounded-lg text-xs font-bold transition-all ${
+                                                    className={`p-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                                                         isAdded 
                                                         ? 'bg-lime-100 text-lime-700 cursor-default' 
                                                         : 'bg-stone-100 text-stone-500 hover:bg-lime-400 hover:text-stone-900'
@@ -234,18 +265,6 @@ export default function PlanView({ preferences, mealPlan, onRegenerate, loading,
                                     })}
                                 </div>
                             </div>
-
-                            {/* Recipe Link Button */}
-                            {meal.recipeUrl && (
-                                <a 
-                                  href={meal.recipeUrl} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="block w-full text-center py-3 bg-stone-900 text-white font-bold rounded-xl hover:bg-stone-800 transition-colors shadow-lg shadow-stone-200"
-                                >
-                                   View Original Recipe
-                                </a>
-                            )}
                          </div>
                       )}
 

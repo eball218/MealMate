@@ -10,10 +10,10 @@ interface Props {
 export default function Navigation({ currentView, setView }: Props) {
   const navItems = [
     { id: ViewState.DAILY, icon: Icons.Calendar, label: 'Daily' },
-    { id: ViewState.PLAN, icon: Icons.Receipt, label: 'Plan' }, // Placeholder icon for Plan
+    { id: ViewState.PLAN, icon: Icons.Receipt, label: 'Plan' }, 
     { id: ViewState.ASSISTANT, icon: Icons.Chat, label: 'Assistant' },
     { id: ViewState.LIST, icon: Icons.List, label: 'List' },
-    { id: ViewState.SAVED, icon: Icons.Heart, label: 'Saved' },
+    { id: ViewState.PROFILE, icon: Icons.User, label: 'Profile' },
   ];
 
   return (

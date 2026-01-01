@@ -23,6 +23,7 @@ export const sendChatMessage = async (
     - Size: ${preferences.familySize} people
     - Diets: ${preferences.dietaryRestrictions.join(', ') || 'None'}
     - Allergies: ${preferences.allergies.join(', ') || 'None'}
+    - Dislikes: ${preferences.dislikes?.join(', ') || 'None'}
     - Goals: ${preferences.goals}
     - Preferred Cooking Time: ${preferences.cookingTime}
 
@@ -76,15 +77,17 @@ export const getWeeklyPlan = async (preferences: UserPreferences): Promise<Meal[
   
   const prompt = `Generate a 7-day dinner meal plan for a family of ${preferences.familySize}.
   Diet: ${preferences.dietaryRestrictions.join(', ') || 'Omnivore'}.
+  Allergies: ${preferences.allergies.join(', ') || 'None'}.
+  Avoid ingredients: ${preferences.dislikes?.join(', ') || 'None'}.
   Goal: ${preferences.goals}.
   Cooking Time Preference: ${preferences.cookingTime}.
   Ensure every meal is unique and distinct from the others in the week.
   
   For each meal, provide:
-  1. A full list of ingredients with quantities (e.g. "2 lbs chicken breast", "1 cup rice").
+  1. A list of ingredients where 'name' is the clean product name (e.g. 'Chicken Breast', not 'Fresh Organic Chicken') and 'amount' is the quantity (e.g. '2 lbs').
   2. A valid URL to a recipe page for this dish (or a google search URL if specific one unknown).
-  3. A list of preparation steps (prepSteps) (e.g. "Chop vegetables", "Marinate meat").
-  4. A list of cooking steps (cookingSteps) (e.g. "Preheat oven to 375F", "Bake for 20 mins").
+  3. A list of preparation steps (prepSteps).
+  4. A list of cooking steps (cookingSteps).
 
   Return a JSON array of 7 objects.`;
 
@@ -108,7 +111,16 @@ export const getWeeklyPlan = async (preferences: UserPreferences): Promise<Meal[
               difficulty: { type: Type.STRING },
               rating: { type: Type.NUMBER },
               time: { type: Type.STRING },
-              ingredients: { type: Type.ARRAY, items: { type: Type.STRING } },
+              ingredients: { 
+                type: Type.ARRAY, 
+                items: { 
+                  type: Type.OBJECT,
+                  properties: {
+                    name: { type: Type.STRING, description: "Clean ingredient name for shopping search" },
+                    amount: { type: Type.STRING, description: "Quantity needed" }
+                  }
+                } 
+              },
               prepSteps: { type: Type.ARRAY, items: { type: Type.STRING } },
               cookingSteps: { type: Type.ARRAY, items: { type: Type.STRING } },
               recipeUrl: { type: Type.STRING },
@@ -133,7 +145,12 @@ export const getWeeklyPlan = async (preferences: UserPreferences): Promise<Meal[
       difficulty: "Medium",
       rating: 4.5,
       time: "30 min",
-      ingredients: ["1 lb Chicken", "2 cups Rice", "Broccoli", "Soy Sauce"],
+      ingredients: [
+        { name: "Chicken Breast", amount: "1 lb" },
+        { name: "White Rice", amount: "2 cups" },
+        { name: "Broccoli", amount: "1 head" },
+        { name: "Soy Sauce", amount: "2 tbsp" }
+      ],
       prepSteps: ["Wash vegetables", "Cut chicken into cubes"],
       cookingSteps: ["Cook rice according to package", "Stir fry chicken", "Add veggies"],
       recipeUrl: "https://www.google.com/search?q=healthy+family+dinner"

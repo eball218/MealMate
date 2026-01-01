@@ -9,6 +9,7 @@ import Navigation from './components/Navigation';
 import DailyView from './components/DailyView';
 import LandingPage from './components/LandingPage';
 import PlanView from './components/PlanView';
+import ProfileView from './components/ProfileView';
 import { getWeeklyPlan } from './services/geminiService';
 
 export default function App() {
@@ -103,6 +104,25 @@ export default function App() {
     }
   };
 
+  const handleUpdatePreferences = (newPrefs: UserPreferences) => {
+    setPreferences(newPrefs);
+    localStorage.setItem('nourish_prefs', JSON.stringify(newPrefs));
+    // Optional: could trigger regenerate here if major changes
+  };
+
+  const toggleMealLike = (index: number, type: 'like' | 'dislike') => {
+    const newPlan = [...mealPlan];
+    if (type === 'like') {
+        newPlan[index].liked = !newPlan[index].liked;
+        newPlan[index].disliked = false;
+    } else {
+        newPlan[index].disliked = !newPlan[index].disliked;
+        newPlan[index].liked = false;
+    }
+    setMealPlan(newPlan);
+    localStorage.setItem('nourish_plan', JSON.stringify(newPlan));
+  };
+
   if (view === ViewState.LANDING) {
     return <LandingPage onStart={() => {
         if (preferences) {
@@ -137,6 +157,7 @@ export default function App() {
               onStartCooking={() => setView(ViewState.LIVE_COOKING)}
               onRegenerate={handleRegeneratePlan}
               loading={isGeneratingPlan}
+              onToggleLike={toggleMealLike}
             />
           )}
 
@@ -148,6 +169,7 @@ export default function App() {
               onRegenerate={handleRegeneratePlan}
               loading={isGeneratingPlan}
               onAddToShoppingList={addToShoppingList}
+              onToggleLike={toggleMealLike}
             />
           )}
           {view === ViewState.PLAN && !preferences && (
@@ -170,9 +192,30 @@ export default function App() {
             />
           )}
 
-          {/* Saved View (Image Generator / Visualizer) */}
+          {/* Profile View (User Info & Likes) */}
+          {view === ViewState.PROFILE && preferences && (
+             <ProfileView 
+               preferences={preferences}
+               onUpdatePreferences={handleUpdatePreferences}
+               mealPlan={mealPlan}
+               onToggleLike={toggleMealLike}
+               onOpenVisualizer={() => setView(ViewState.SAVED)}
+             />
+          )}
+
+          {/* Saved View (Image Generator / Visualizer) - Hidden from main nav but accessible */}
           {view === ViewState.SAVED && (
-            <ImageGenerator />
+             <div className="h-full flex flex-col">
+                <div className="p-4 bg-white border-b border-stone-100 flex items-center gap-2">
+                   <button onClick={() => setView(ViewState.PROFILE)} className="text-stone-500 hover:text-stone-900">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                      </svg>
+                   </button>
+                   <span className="font-bold text-stone-900">Back to Profile</span>
+                </div>
+                <ImageGenerator />
+             </div>
           )}
 
           {/* Live Cooking Mode (Overlay/Full screen) */}
