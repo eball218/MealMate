@@ -75,25 +75,6 @@ export const sendChatMessage = async (
 export const getWeeklyPlan = async (preferences: UserPreferences): Promise<Meal[]> => {
   const modelId = 'gemini-3-flash-preview';
   
-  // VERSION 1 PROMPT (Saved for rollback)
-  /*
-  const prompt = `Generate a 7-day dinner meal plan for a family of ${preferences.familySize}.
-  Diet: ${preferences.dietaryRestrictions.join(', ') || 'Omnivore'}.
-  Allergies: ${preferences.allergies.join(', ') || 'None'}.
-  Avoid ingredients: ${preferences.dislikes?.join(', ') || 'None'}.
-  Goals (in priority order): ${preferences.goals.join(', ')}.
-  Cooking Time Preference: ${preferences.cookingTime}.
-  Ensure every meal is unique and distinct from the others in the week.
-  
-  For each meal, provide:
-  1. A list of ingredients where 'name' is the clean product name (e.g. 'Chicken Breast', not 'Fresh Organic Chicken') and 'amount' is the quantity (e.g. '2 lbs').
-  2. A valid URL to a recipe page for this dish (or a google search URL if specific one unknown).
-  3. A list of preparation steps (prepSteps).
-  4. A list of cooking steps (cookingSteps).
-
-  Return a JSON array of 7 objects.`;
-  */
-
   // VERSION 3 PROMPT (With Imagen Template)
   const prompt = `Generate a 7-day dinner meal plan for a family of ${preferences.familySize}.
 
@@ -284,6 +265,185 @@ The response MUST be a JSON array of exactly 7 objects.`;
       recipeUrl: "https://www.google.com/search?q=healthy+family+dinner",
       imagePrompt: "A healthy family dinner with chicken and vegetables."
     });
+  }
+};
+
+// -- Single Meal Swap --
+export const getSingleMealSuggestion = async (preferences: UserPreferences, avoidMeal: Meal): Promise<Meal> => {
+  const modelId = 'gemini-3-flash-preview';
+  
+  const prompt = `Generate a single dinner meal replacement for a family of ${preferences.familySize}.
+  
+  CURRENT CONTEXT:
+  The user wants to replace this meal: "${avoidMeal.title}".
+  The new meal MUST be significantly different (different protein or cuisine).
+
+  Diet: ${preferences.dietaryRestrictions.join(', ') || 'Omnivore'}
+  Allergies: ${preferences.allergies.join(', ') || 'None'}
+  Avoid ingredients: ${preferences.dislikes?.join(', ') || 'None'}
+  Goals: ${preferences.goals.join(', ')}
+  Cooking Time: ${preferences.cookingTime}
+
+  Requirements:
+  1. Unique and distinct.
+  2. Ingredient names must be clean (no brands).
+  3. Standard U.S. measurements.
+
+  For the meal, provide:
+  - title (mealName)
+  - description
+  - calories (int)
+  - protein, carbs, fat (strings)
+  - difficulty (Easy, Medium, Hard)
+  - rating (number)
+  - time (string)
+  - ingredients (array of {name, amount})
+  - prepSteps (string array)
+  - cookingSteps (string array)
+  - recipeUrl (string)
+  - imageKeyword (string)
+  - imagePrompt (string - see template below)
+
+  IMAGE PROMPT TEMPLATE (IMAGEN 4):
+
+  Generate a high-resolution editorial food-style image for the meal titled:
+  "{MEAL TITLE}"
+
+  Camera & framing:
+  • Top-down flat lay
+  • Overhead camera angle
+  • Centered plated dish as the main focal point
+  • Balanced composition with intentional negative space
+
+  Lighting:
+  • Soft, natural daylight
+  • Diffused window-style lighting
+  • Gentle realistic shadows
+  • Even exposure, no harsh contrast
+
+  Environment:
+  • Light cool-neutral background
+  • Matte stone, plaster, or soft concrete texture
+  • Clean surface with subtle organic imperfections
+  • Premium lifestyle editorial setting
+
+  Styling:
+  • Modern minimalist food editorial styling
+  • Clean, intentional arrangement
+  • Supporting elements placed naturally around the plate
+    (small bowls, herbs, grains, seeds, linen napkin, wooden board)
+  • Styled to look effortless but professionally composed
+
+  Color & tone:
+  • Natural, fresh color palette
+  • Slightly muted saturation
+  • High color separation
+  • Crisp whites and soft neutrals
+  • No heavy color grading
+
+  Focus & realism:
+  • Deep focus across entire image
+  • Sharp high-detail textures
+  • Realistic materials and lighting behavior
+  • Professional stock-photo quality realism
+
+  Mood & purpose:
+  • Clean
+  • Fresh
+  • Health-forward
+  • Modern lifestyle
+  • Recipe blog / meal prep app / wellness brand aesthetic
+
+  Output quality:
+  • Ultra-detailed
+  • Photorealistic
+  • Studio-quality finish
+  • No text or branding
+
+  NEGATIVE PROMPT (IMPORTANT — DO NOT OMIT):
+  Avoid:
+  • Dark or moody lighting
+  • Dramatic shadows
+  • Oversaturation
+  • Cartoon or illustration styles
+  • AI artifacts
+  • Plastic or fake textures
+  • Messy or cluttered composition
+  • Shallow depth of field
+  • Extreme close-ups
+  • Hands, people, faces
+  • Logos, text, watermarks
+  • Rustic chaos or casual smartphone photography
+  • Unrealistic plating or proportions
+
+  Return ONLY valid JSON.
+  Do not include markdown, explanations, emojis, or extra text.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: modelId,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              description: { type: Type.STRING },
+              calories: { type: Type.NUMBER },
+              protein: { type: Type.STRING },
+              carbs: { type: Type.STRING },
+              fat: { type: Type.STRING },
+              difficulty: { type: Type.STRING },
+              rating: { type: Type.NUMBER },
+              time: { type: Type.STRING },
+              ingredients: { 
+                type: Type.ARRAY, 
+                items: { 
+                  type: Type.OBJECT,
+                  properties: {
+                    name: { type: Type.STRING, description: "Clean ingredient name" },
+                    amount: { type: Type.STRING, description: "Quantity needed" }
+                  }
+                } 
+              },
+              prepSteps: { type: Type.ARRAY, items: { type: Type.STRING } },
+              cookingSteps: { type: Type.ARRAY, items: { type: Type.STRING } },
+              recipeUrl: { type: Type.STRING },
+              imageKeyword: { type: Type.STRING },
+              imagePrompt: { type: Type.STRING, description: "The full prompt for image generation" }
+            }
+          }
+        }
+      });
+
+    const jsonStr = response.text || "{}";
+    return JSON.parse(jsonStr);
+
+  } catch (error) {
+    console.error("Single Meal Swap Error:", error);
+    // Fallback data
+    return { 
+      title: "Simple Pasta", 
+      imageKeyword: "pasta",
+      description: "A quick fallback meal.",
+      calories: 400,
+      difficulty: "Easy",
+      rating: 4.0,
+      time: "15 min",
+      ingredients: [
+        { name: "Pasta", amount: "1 lb" },
+        { name: "Marinara Sauce", amount: "1 jar" }
+      ],
+      protein: "10g",
+      carbs: "60g",
+      fat: "5g",
+      prepSteps: ["Boil water"],
+      cookingSteps: ["Cook pasta", "Add sauce"],
+      recipeUrl: "https://www.google.com/search?q=simple+pasta",
+      imagePrompt: "Simple pasta dish"
+    };
   }
 };
 

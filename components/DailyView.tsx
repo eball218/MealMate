@@ -7,11 +7,12 @@ interface Props {
   mealPlan: Meal[];
   onStartCooking: () => void;
   onRegenerate: () => void;
+  onSwapMeal: (index: number) => void;
   loading: boolean;
   onToggleLike: (index: number, type: 'like' | 'dislike') => void;
 }
 
-export default function DailyView({ preferences, mealPlan, onStartCooking, onRegenerate, loading, onToggleLike }: Props) {
+export default function DailyView({ preferences, mealPlan, onStartCooking, onRegenerate, onSwapMeal, loading, onToggleLike }: Props) {
   const [selectedDay, setSelectedDay] = useState(0); // 0 is today
 
   // Simple date logic
@@ -79,7 +80,11 @@ export default function DailyView({ preferences, mealPlan, onStartCooking, onReg
         <div className="p-6 pt-2">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-stone-900">{selectedDay === 0 ? "Tonight's Dinner" : "Planned Dinner"}</h2>
-            <button className="text-sm font-bold text-lime-600 hover:text-lime-700 flex items-center gap-1 bg-lime-50 px-3 py-1 rounded-full">
+            <button 
+              onClick={() => onSwapMeal(mealIndex)}
+              disabled={loading}
+              className="text-sm font-bold text-lime-600 hover:text-lime-700 flex items-center gap-1 bg-lime-50 px-3 py-1 rounded-full disabled:opacity-50"
+            >
               <Icons.Refresh /> Swap
             </button>
           </div>
