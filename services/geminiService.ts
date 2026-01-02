@@ -24,7 +24,7 @@ export const sendChatMessage = async (
     - Diets: ${preferences.dietaryRestrictions.join(', ') || 'None'}
     - Allergies: ${preferences.allergies.join(', ') || 'None'}
     - Dislikes: ${preferences.dislikes?.join(', ') || 'None'}
-    - Goals: ${preferences.goals}
+    - Goals (in priority order): ${preferences.goals.join(', ')}
     - Preferred Cooking Time: ${preferences.cookingTime}
 
     Tone: Warm, encouraging, calm.
@@ -75,11 +75,13 @@ export const sendChatMessage = async (
 export const getWeeklyPlan = async (preferences: UserPreferences): Promise<Meal[]> => {
   const modelId = 'gemini-3-flash-preview';
   
+  // VERSION 1 PROMPT (Saved for rollback)
+  /*
   const prompt = `Generate a 7-day dinner meal plan for a family of ${preferences.familySize}.
   Diet: ${preferences.dietaryRestrictions.join(', ') || 'Omnivore'}.
   Allergies: ${preferences.allergies.join(', ') || 'None'}.
   Avoid ingredients: ${preferences.dislikes?.join(', ') || 'None'}.
-  Goal: ${preferences.goals}.
+  Goals (in priority order): ${preferences.goals.join(', ')}.
   Cooking Time Preference: ${preferences.cookingTime}.
   Ensure every meal is unique and distinct from the others in the week.
   
@@ -90,6 +92,131 @@ export const getWeeklyPlan = async (preferences: UserPreferences): Promise<Meal[
   4. A list of cooking steps (cookingSteps).
 
   Return a JSON array of 7 objects.`;
+  */
+
+  // VERSION 3 PROMPT (With Imagen Template)
+  const prompt = `Generate a 7-day dinner meal plan for a family of ${preferences.familySize}.
+
+Diet: ${preferences.dietaryRestrictions.join(', ') || 'Omnivore'}
+Allergies: ${preferences.allergies.join(', ') || 'None'}
+Avoid ingredients: ${preferences.dislikes?.join(', ') || 'None'}
+Goals (priority order): ${preferences.goals.join(', ')}
+Cooking Time Preference: ${preferences.cookingTime}
+
+This plan is for dinner meals only.
+All ingredient quantities must be scaled appropriately for a family of ${preferences.familySize}.
+
+Diversity rules:
+- Every meal must be unique.
+- Do not repeat the same primary protein more than twice during the week.
+- Do not repeat the same cuisine style on consecutive days.
+- Avoid using the same main ingredient in more than three meals.
+
+Ingredient rules:
+- Use clean, singular ingredient names (e.g., "Onion", not "Onions").
+- Do not include brand names.
+- Use standard U.S. measurements (cups, tbsp, tsp, lbs, oz).
+
+Constraint handling:
+- If all preferences cannot be fully satisfied, prioritize in this order:
+  1. Allergies
+  2. Dietary restrictions
+  3. Avoid ingredients
+  4. Goals
+- Stay as close as possible to all preferences when compromises are required.
+
+For each meal, provide:
+1. title (mealName)
+2. description (Short appetizing description)
+3. calories (integer estimate per serving)
+4. protein, carbs, fat (nutritional string estimates)
+5. difficulty (Easy, Medium, Hard)
+6. rating (4.0-5.0)
+7. time (e.g. "30 min")
+8. ingredients (array of objects: name, amount)
+9. recipeUrl (string — a direct recipe link or a Google search URL if unknown)
+10. prepSteps (array of strings): Only actions performed before heat is applied
+11. cookingSteps (array of strings): Only actions involving heat or appliance use
+12. imagePrompt (string — used with Imagen 4)
+
+The imagePrompt MUST be generated using the following template and customized only by replacing {MEAL TITLE} with the exact mealName:
+
+IMAGE PROMPT TEMPLATE (IMAGEN 4):
+
+Generate a high-resolution editorial food-style image for the meal titled:
+"{MEAL TITLE}"
+
+Camera & framing:
+• Top-down flat lay
+• Overhead camera angle
+• Centered plated dish as the main focal point
+• Balanced composition with intentional negative space
+
+Lighting:
+• Soft, natural daylight
+• Diffused window-style lighting
+• Gentle realistic shadows
+• Even exposure, no harsh contrast
+
+Environment:
+• Light cool-neutral background
+• Matte stone, plaster, or soft concrete texture
+• Clean surface with subtle organic imperfections
+• Premium lifestyle editorial setting
+
+Styling:
+• Modern minimalist food editorial styling
+• Clean, intentional arrangement
+• Supporting elements placed naturally around the plate
+  (small bowls, herbs, grains, seeds, linen napkin, wooden board)
+• Styled to look effortless but professionally composed
+
+Color & tone:
+• Natural, fresh color palette
+• Slightly muted saturation
+• High color separation
+• Crisp whites and soft neutrals
+• No heavy color grading
+
+Focus & realism:
+• Deep focus across entire image
+• Sharp high-detail textures
+• Realistic materials and lighting behavior
+• Professional stock-photo quality realism
+
+Mood & purpose:
+• Clean
+• Fresh
+• Health-forward
+• Modern lifestyle
+• Recipe blog / meal prep app / wellness brand aesthetic
+
+Output quality:
+• Ultra-detailed
+• Photorealistic
+• Studio-quality finish
+• No text or branding
+
+NEGATIVE PROMPT (IMPORTANT — DO NOT OMIT):
+Avoid:
+• Dark or moody lighting
+• Dramatic shadows
+• Oversaturation
+• Cartoon or illustration styles
+• AI artifacts
+• Plastic or fake textures
+• Messy or cluttered composition
+• Shallow depth of field
+• Extreme close-ups
+• Hands, people, faces
+• Logos, text, watermarks
+• Rustic chaos or casual smartphone photography
+• Unrealistic plating or proportions
+
+Return ONLY valid JSON.
+Do not include markdown, explanations, emojis, or extra text.
+
+The response MUST be a JSON array of exactly 7 objects.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -116,7 +243,7 @@ export const getWeeklyPlan = async (preferences: UserPreferences): Promise<Meal[
                 items: { 
                   type: Type.OBJECT,
                   properties: {
-                    name: { type: Type.STRING, description: "Clean ingredient name for shopping search" },
+                    name: { type: Type.STRING, description: "Clean ingredient name" },
                     amount: { type: Type.STRING, description: "Quantity needed" }
                   }
                 } 
@@ -124,7 +251,8 @@ export const getWeeklyPlan = async (preferences: UserPreferences): Promise<Meal[
               prepSteps: { type: Type.ARRAY, items: { type: Type.STRING } },
               cookingSteps: { type: Type.ARRAY, items: { type: Type.STRING } },
               recipeUrl: { type: Type.STRING },
-              imageKeyword: { type: Type.STRING }
+              imageKeyword: { type: Type.STRING },
+              imagePrompt: { type: Type.STRING, description: "The full prompt for image generation" }
             }
           }
         }
@@ -153,27 +281,37 @@ export const getWeeklyPlan = async (preferences: UserPreferences): Promise<Meal[
       ],
       prepSteps: ["Wash vegetables", "Cut chicken into cubes"],
       cookingSteps: ["Cook rice according to package", "Stir fry chicken", "Add veggies"],
-      recipeUrl: "https://www.google.com/search?q=healthy+family+dinner"
+      recipeUrl: "https://www.google.com/search?q=healthy+family+dinner",
+      imagePrompt: "A healthy family dinner with chicken and vegetables."
     });
   }
 };
 
-// -- Image Generation (High Quality) --
+// -- Image Generation --
 export const generateMealImage = async (prompt: string, size: '1K' | '2K' | '4K') => {
-  const modelId = 'gemini-3-pro-image-preview';
+  // Use 'gemini-2.5-flash-image' for standard (1K) requests to improve speed/latency.
+  // Use 'gemini-3-pro-image-preview' for high quality (2K/4K) requests.
+  const isHighQuality = size === '2K' || size === '4K';
+  const modelId = isHighQuality ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
 
   try {
+    const config: any = {
+       imageConfig: {
+           aspectRatio: '4:3',
+       }
+    };
+    
+    // imageSize is only supported by the Pro model
+    if (isHighQuality) {
+       config.imageConfig.imageSize = size;
+    }
+
     const response = await ai.models.generateContent({
       model: modelId,
       contents: {
         parts: [{ text: prompt }]
       },
-      config: {
-        imageConfig: {
-          aspectRatio: '4:3', // Better for card layout
-          imageSize: size
-        }
-      }
+      config: config
     });
 
     // Find image part

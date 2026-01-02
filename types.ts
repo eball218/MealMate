@@ -18,7 +18,7 @@ export interface UserPreferences {
   allergies: string[];
   dislikes: string[]; // New field for ingredients to avoid
   cookingTime: string; // 'Fast (15-30m)', 'Medium (30-60m)', 'Slow (>60m)'
-  goals: string; // 'Save Money', 'Eat Healthier', 'Try New Foods'
+  goals: string[]; // Changed to array for multiple ordered goals
 }
 
 export enum ViewState {
@@ -65,6 +65,7 @@ export interface Meal {
   cookingSteps?: string[]; // Actual cooking instructions
   recipeUrl: string; // Link to original or search
   imageKeyword: string;
+  imagePrompt?: string; // New field for Imagen generation
   imageUrl?: string;
   liked?: boolean;
   disliked?: boolean;

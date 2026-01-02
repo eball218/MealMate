@@ -13,7 +13,7 @@ export default function ChatInterface({ preferences, onRegeneratePlan }: Props) 
     { 
       id: '1', 
       role: 'model', 
-      text: `Hi ${preferences.name}! I've noted that you're cooking for ${preferences.familySize} people and want to ${preferences.goals.toLowerCase()}. How can I help with your meal plan today?` 
+      text: `Hi ${preferences.name}! I've noted that you're cooking for ${preferences.familySize} people and want to ${preferences.goals.join(' and ').toLowerCase()}. How can I help with your meal plan today?` 
     }
   ]);
   const [input, setInput] = useState('');

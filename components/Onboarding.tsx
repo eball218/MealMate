@@ -14,17 +14,17 @@ const steps = [
 
 export default function Onboarding({ onComplete }: Props) {
   const [step, setStep] = useState(1);
-  const [adults, setAdults] = useState(2);
-  const [childrenCount, setChildrenCount] = useState(1); // Renamed to avoid confusion with children prop
+  const [adults, setAdults] = useState(1);
+  const [childrenCount, setChildrenCount] = useState(0); // Renamed to avoid confusion with children prop
   
   const [prefs, setPrefs] = useState<UserPreferences>({
     name: '',
-    familySize: 3,
+    familySize: 1,
     dietaryRestrictions: [],
     allergies: [],
     dislikes: [],
     cookingTime: 'Medium (30-60m)',
-    goals: 'Eat Healthier'
+    goals: ['Eat Healthier']
   });
 
   // Update family size when counts change
@@ -59,9 +59,7 @@ export default function Onboarding({ onComplete }: Props) {
             Step {step} of 3
           </span>
 
-          <button onClick={() => setStep(3)} className="text-xs font-bold text-stone-400 hover:text-stone-600">
-            Skip
-          </button>
+          <div className="w-9"></div>
         </div>
 
         {/* Progress Bar */}
@@ -147,7 +145,7 @@ export default function Onboarding({ onComplete }: Props) {
                <div className="bg-blue-50 p-4 rounded-xl flex gap-3 items-start border border-blue-100">
                  <span className="text-lg">💡</span>
                  <p className="text-blue-900 text-sm font-semibold leading-relaxed">
-                   <span className="font-bold text-blue-700">AI Tip:</span> Based on {totalPeople} people, I'll plan meals that average around ${estimatedCost} per dinner.
+                   <span className="font-bold text-blue-700">Tip:</span> Based on {totalPeople} people, I'll plan meals that average around ${estimatedCost} per dinner.
                  </p>
                </div>
             </div>
@@ -188,6 +186,16 @@ export default function Onboarding({ onComplete }: Props) {
                   placeholder="e.g. Peanuts, Shellfish"
                 />
               </div>
+               <div>
+                <label className="block text-sm font-bold text-stone-700 mb-2">Dislikes (Optional)</label>
+                <input 
+                  type="text" 
+                  className="w-full p-4 rounded-xl border-2 border-stone-100 focus:border-lime-400 focus:ring-0 outline-none transition-colors bg-stone-50 font-medium"
+                  value={prefs.dislikes?.join(', ') || ''}
+                  onChange={e => setPrefs({...prefs, dislikes: e.target.value.split(',').map(s => s.trim())})}
+                  placeholder="e.g. Mushrooms, Olives, Cilantro"
+                />
+              </div>
             </div>
           )}
 
@@ -205,26 +213,50 @@ export default function Onboarding({ onComplete }: Props) {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-stone-700 mb-3">Primary Goal</label>
+                <div className="flex justify-between items-end mb-2">
+                  <label className="block text-sm font-bold text-stone-700">Goals</label>
+                  <span className="text-[10px] uppercase font-bold text-stone-400">Multi-select enabled</span>
+                </div>
+                <p className="text-xs text-stone-500 mb-3 font-medium bg-blue-50 text-blue-800 p-2 rounded-lg border border-blue-100">
+                   💡 <strong>Note:</strong> The order you select these in determines their priority for meal planning.
+                </p>
                  <div className="grid grid-cols-1 gap-3">
-                  {['Eat Healthier', 'Save Money', 'Save Time', 'Learn to Cook'].map(goal => (
+                  {['Eat Healthier', 'Save Money', 'Save Time', 'Learn to Cook'].map(goal => {
+                     const isSelected = prefs.goals.includes(goal);
+                     const orderIndex = prefs.goals.indexOf(goal) + 1;
+                     
+                     return (
                      <button
                       key={goal}
-                      onClick={() => setPrefs({...prefs, goals: goal})}
+                      onClick={() => {
+                          if (isSelected) {
+                              setPrefs({...prefs, goals: prefs.goals.filter(g => g !== goal)});
+                          } else {
+                              setPrefs({...prefs, goals: [...prefs.goals, goal]});
+                          }
+                      }}
                       className={`p-4 rounded-xl text-left border-2 transition-all group ${
-                        prefs.goals === goal 
+                        isSelected 
                           ? 'bg-lime-50 border-lime-400 shadow-sm' 
                           : 'bg-white border-stone-100 hover:border-lime-200 hover:bg-stone-50'
                       }`}
                     >
                       <div className="flex justify-between items-center">
-                        <span className={`block font-bold text-lg ${prefs.goals === goal ? 'text-stone-900' : 'text-stone-600 group-hover:text-stone-900'}`}>
+                        <span className={`block font-bold text-lg ${isSelected ? 'text-stone-900' : 'text-stone-600 group-hover:text-stone-900'}`}>
                             {goal}
                         </span>
-                        {prefs.goals === goal && <div className="text-lime-500"><Icons.Sparkle /></div>}
+                        {isSelected ? (
+                            <div className="flex items-center gap-2">
+                                <span className="bg-lime-400 text-stone-900 w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shadow-sm">
+                                    {orderIndex}
+                                </span>
+                            </div>
+                        ) : (
+                            <div className="w-7 h-7 rounded-full border-2 border-stone-200"></div>
+                        )}
                       </div>
                     </button>
-                  ))}
+                  )})}
                  </div>
               </div>
             </div>

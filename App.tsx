@@ -9,7 +9,7 @@ import DailyView from './components/DailyView';
 import LandingPage from './components/LandingPage';
 import PlanView from './components/PlanView';
 import ProfileView from './components/ProfileView';
-import { getWeeklyPlan } from './services/geminiService';
+import { getWeeklyPlan, generateMealImage } from './services/geminiService';
 
 export default function App() {
   // Simple check for API Key
@@ -37,7 +37,16 @@ export default function App() {
     const savedList = localStorage.getItem('nourish_list');
     
     if (savedPrefs) {
-      setPreferences(JSON.parse(savedPrefs));
+      try {
+        const parsed = JSON.parse(savedPrefs);
+        // Migration: goals string -> array for existing users
+        if (typeof parsed.goals === 'string') {
+          parsed.goals = [parsed.goals];
+        }
+        setPreferences(parsed);
+      } catch (e) {
+        console.error("Failed to parse prefs", e);
+      }
     }
 
     if (savedPlan) {
@@ -67,22 +76,29 @@ export default function App() {
     try {
       const meals = await getWeeklyPlan(prefs);
       
-      // Map images (simple mapping for demo consistency)
-      const enhancedMeals = meals.map((m, i) => ({
-             ...m,
-             imageUrl: `https://images.unsplash.com/photo-${[
-                '1547592180-85f173990554', // Chicken
-                '1504674900247-0877df9cc836', // Meat
-                '1626800547487-56311a426f5f', // Stir fry
-                '1604908176997-125f25cc6f3d', // Salad
-                '1551183053-bf91a1d7b330', // Taco
-                '1547496503-42b29eb14f75', // Soup
-                '1512621776951-a57141f2eefd'  // Veggies
-             ][i % 7]}?q=80&w=600&h=400&auto=format&fit=crop`
+      // Generate images for all meals in parallel
+      const mealsWithImages = await Promise.all(meals.map(async (meal) => {
+        let imageUrl = '';
+        try {
+          // Use imagePrompt if available, otherwise fallback to title
+          const prompt = meal.imagePrompt || `A delicious photo of ${meal.title}, high quality food photography`;
+          
+          // Use '1K' which maps to standard generation (Flash model) for speed in batch
+          imageUrl = await generateMealImage(prompt, '1K'); 
+        } catch (err) {
+          console.error(`Failed to generate image for ${meal.title}`, err);
+          // Fallback to Unsplash if generation fails
+          imageUrl = `https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=600&h=400&auto=format&fit=crop`; 
+        }
+        
+        return {
+          ...meal,
+          imageUrl
+        };
       }));
 
-      setMealPlan(enhancedMeals);
-      localStorage.setItem('nourish_plan', JSON.stringify(enhancedMeals));
+      setMealPlan(mealsWithImages);
+      localStorage.setItem('nourish_plan', JSON.stringify(mealsWithImages));
     } catch (e) {
       console.error("Failed to generate plan", e);
     } finally {

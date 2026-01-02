@@ -122,21 +122,44 @@ export default function ProfileView({ preferences, onUpdatePreferences, mealPlan
                 </div>
 
                 {/* Goal */}
-                <div className="flex items-center justify-between p-3 bg-stone-50 rounded-xl border border-stone-100">
-                   <span className="text-sm font-medium text-stone-600">Primary Goal</span>
+                <div className="flex flex-col p-3 bg-stone-50 rounded-xl border border-stone-100 gap-2">
+                   <span className="text-sm font-medium text-stone-600">Goals (Priority Order)</span>
                    {isEditing ? (
-                      <select 
-                        value={tempPrefs.goals}
-                        onChange={(e) => setTempPrefs({...tempPrefs, goals: e.target.value})}
-                        className="bg-white border-stone-200 text-stone-900 text-sm font-bold rounded-lg p-1 outline-none max-w-[160px]"
-                      >
-                         <option>Eat Healthier</option>
-                         <option>Save Money</option>
-                         <option>Save Time</option>
-                         <option>Learn to Cook</option>
-                      </select>
+                      <div className="flex flex-col gap-2 mt-1">
+                          {['Eat Healthier', 'Save Money', 'Save Time', 'Learn to Cook'].map(goal => {
+                              const isSelected = tempPrefs.goals.includes(goal);
+                              const index = tempPrefs.goals.indexOf(goal);
+                              return (
+                                  <button
+                                      key={goal}
+                                      onClick={() => {
+                                          if (isSelected) {
+                                              setTempPrefs(prev => ({...prev, goals: prev.goals.filter(g => g !== goal)}));
+                                          } else {
+                                              setTempPrefs(prev => ({...prev, goals: [...prev.goals, goal]}));
+                                          }
+                                      }}
+                                      className={`p-2 rounded-lg text-xs font-bold border flex justify-between items-center ${
+                                          isSelected 
+                                              ? 'bg-lime-100 border-lime-300 text-stone-900' 
+                                              : 'bg-white border-stone-200 text-stone-400'
+                                      }`}
+                                  >
+                                      {goal}
+                                      {isSelected && <span className="bg-lime-400 text-stone-900 px-1.5 rounded-full text-[10px]">{index + 1}</span>}
+                                  </button>
+                              )
+                          })}
+                      </div>
                    ) : (
-                      <span className="font-black text-stone-900 text-sm">{preferences.goals}</span>
+                      <div className="flex flex-wrap gap-1">
+                          {preferences.goals.map((goal, i) => (
+                             <span key={i} className="bg-white border border-stone-200 px-2 py-1 rounded-md text-xs font-bold text-stone-800 flex items-center gap-1.5">
+                                <span className="bg-stone-100 text-stone-500 w-4 h-4 rounded-full flex items-center justify-center text-[9px]">{i+1}</span>
+                                {goal}
+                             </span>
+                          ))}
+                      </div>
                    )}
                 </div>
              </div>

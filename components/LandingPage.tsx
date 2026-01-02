@@ -60,7 +60,7 @@ export default function LandingPage({ onStart }: Props) {
       {/* Footer Tagline */}
       <div className="absolute bottom-8 left-0 right-0 z-10 text-center">
         <p className="text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-[0.2em] opacity-80">
-          Free for Families • AI Powered
+          AI Powered
         </p>
       </div>
     </div>
